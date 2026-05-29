@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { ClothCanvas } from './ClothCanvas'
+import { ClothCanvas, type ClothCanvasHandle } from './ClothCanvas'
 import './App.css'
 
 const BASE = import.meta.env.BASE_URL
+const BEER_SRC = `${BASE}beer-6pack.png`
 const IMAGE_COUNT = 20
 const IMAGES = Array.from(
   { length: IMAGE_COUNT },
@@ -23,6 +24,7 @@ function App() {
   const [hinted, setHinted] = useState(false)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
   const objectUrlRef = useRef<string | null>(null)
+  const canvasRef = useRef<ClothCanvasHandle | null>(null)
 
   useEffect(() => {
     return () => {
@@ -49,6 +51,10 @@ function App() {
     fileInputRef.current?.click()
   }, [])
 
+  const throwBeer = useCallback(() => {
+    canvasRef.current?.throwBeer()
+  }, [])
+
   const handleFile = useCallback((ev: React.ChangeEvent<HTMLInputElement>) => {
     const file = ev.target.files?.[0]
     ev.target.value = ''
@@ -64,10 +70,20 @@ function App() {
   return (
     <div className="app">
       <ClothCanvas
+        ref={canvasRef}
         key={imageSrc}
         imageSrc={imageSrc}
+        beerSrc={BEER_SRC}
         onLoaded={handleLoaded}
       />
+      <button
+        type="button"
+        className="app__throw"
+        onClick={throwBeer}
+        aria-label="맥주 던지기"
+      >
+        🍺 맥주 투척
+      </button>
       <div className="app__controls">
         <button type="button" className="app__btn" onClick={openPicker}>
           Upload

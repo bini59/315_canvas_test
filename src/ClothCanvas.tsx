@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { forwardRef, useEffect, useImperativeHandle, useRef } from 'react'
 
 type Point = {
   x: number
@@ -36,8 +36,46 @@ const WIND_AMPLITUDE = 90
 const IMPULSE_RADIUS_RATIO = 0.35
 const IMPULSE_STRENGTH = 14
 
+// Thrown-beer projectile + impact tuning
+const BEER_GRAVITY = 1950
+const BEER_FLIGHT_TIME = 0.5
+const HIT_RADIUS_RATIO = 0.42
+const HIT_STRENGTH = 28
+const SPLASH_COUNT = 18
+const PARTICLE_GRAVITY = 900
+const FADE_DURATION = 0.5
+
+type Beer = {
+  x: number
+  y: number
+  vx: number
+  vy: number
+  angle: number
+  spin: number
+  size: number
+  tx: number
+  ty: number
+  impacted: boolean
+  fade: number
+}
+
+type Particle = {
+  x: number
+  y: number
+  vx: number
+  vy: number
+  life: number
+  maxLife: number
+  r: number
+}
+
+export type ClothCanvasHandle = {
+  throwBeer: () => void
+}
+
 type Props = {
   imageSrc: string
+  beerSrc: string
   onLoaded?: () => void
 }
 
@@ -146,6 +184,111 @@ function applyImpulse(cloth: Cloth, cx: number, cy: number) {
   }
 }
 
+// Directional shove from a thrown object hitting the cloth at (cx, cy).
+function applyHit(
+  cloth: Cloth,
+  cx: number,
+  cy: number,
+  dirX: number,
+  dirY: number,
+  strength: number,
+) {
+  const radius = Math.max(cloth.imgW, cloth.imgH) * HIT_RADIUS_RATIO
+  const r2 = radius * radius
+  for (const p of cloth.points) {
+    if (p.pinned) continue
+    const dx = p.x - cx
+    const dy = p.y - cy
+    const d2 = dx * dx + dy * dy
+    if (d2 > r2) continue
+    const falloff = 1 - Math.sqrt(d2) / radius
+    // push mostly along travel direction, plus a little radial scatter
+    p.x += dirX * strength * falloff + (dx / (Math.sqrt(d2) || 1)) * strength * 0.3 * falloff
+    p.y += dirY * strength * falloff + (dy / (Math.sqrt(d2) || 1)) * strength * 0.3 * falloff
+  }
+}
+
+function spawnSplash(particles: Particle[], x: number, y: number) {
+  for (let i = 0; i < SPLASH_COUNT; i++) {
+    const ang = Math.random() * Math.PI * 2
+    const spd = 120 + Math.random() * 280
+    particles.push({
+      x,
+      y,
+      vx: Math.cos(ang) * spd,
+      vy: Math.sin(ang) * spd - 90,
+      life: 0,
+      maxLife: 0.45 + Math.random() * 0.45,
+      r: 2 + Math.random() * 4,
+    })
+  }
+}
+
+function stepProjectiles(
+  beers: Beer[],
+  particles: Particle[],
+  cloth: Cloth,
+  dt: number,
+) {
+  for (const b of beers) {
+    b.vy += BEER_GRAVITY * dt
+    b.x += b.vx * dt
+    b.y += b.vy * dt
+    b.angle += b.spin * dt
+    if (!b.impacted && b.x >= b.tx) {
+      b.impacted = true
+      const len = Math.hypot(b.vx, b.vy) || 1
+      applyHit(cloth, b.tx, b.ty, b.vx / len, b.vy / len, HIT_STRENGTH)
+      spawnSplash(particles, b.tx, b.ty)
+      // ricochet off the character
+      b.vx = -Math.abs(b.vx) * 0.25
+      b.vy = -Math.abs(b.vy) * 0.3 - 160
+      b.spin *= -1.25
+    }
+    if (b.impacted) b.fade -= dt / FADE_DURATION
+  }
+  for (const p of particles) {
+    p.vy += PARTICLE_GRAVITY * dt
+    p.x += p.vx * dt
+    p.y += p.vy * dt
+    p.life += dt
+  }
+}
+
+function drawProjectiles(
+  ctx: CanvasRenderingContext2D,
+  beerImg: HTMLImageElement | null,
+  beers: Beer[],
+  particles: Particle[],
+  dpr: number,
+) {
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
+  for (const p of particles) {
+    const a = 1 - p.life / p.maxLife
+    if (a <= 0) continue
+    ctx.globalAlpha = a
+    ctx.fillStyle = '#f3e6b0'
+    ctx.beginPath()
+    ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2)
+    ctx.fill()
+  }
+  ctx.globalAlpha = 1
+  if (beerImg && beerImg.naturalWidth > 0) {
+    const ar = beerImg.naturalHeight / beerImg.naturalWidth
+    for (const b of beers) {
+      ctx.save()
+      ctx.globalAlpha = Math.max(0, b.fade)
+      ctx.translate(b.x, b.y)
+      ctx.rotate(b.angle)
+      const w = b.size
+      const h = b.size * ar
+      ctx.drawImage(beerImg, -w / 2, -h / 2, w, h)
+      ctx.restore()
+    }
+    ctx.globalAlpha = 1
+  }
+}
+
 function drawTriangle(
   ctx: CanvasRenderingContext2D,
   img: HTMLImageElement,
@@ -230,12 +373,54 @@ function render(
   }
 }
 
-export function ClothCanvas({ imageSrc, onLoaded }: Props) {
+export const ClothCanvas = forwardRef<ClothCanvasHandle, Props>(function ClothCanvas(
+  { imageSrc, beerSrc, onLoaded },
+  ref,
+) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
   const imgRef = useRef<HTMLImageElement | null>(null)
   const clothRef = useRef<Cloth | null>(null)
   const rafRef = useRef<number | null>(null)
   const sizeRef = useRef({ w: 0, h: 0, dpr: 1 })
+  const beerImgRef = useRef<HTMLImageElement | null>(null)
+  const beersRef = useRef<Beer[]>([])
+  const particlesRef = useRef<Particle[]>([])
+
+  useImperativeHandle(ref, () => ({
+    throwBeer() {
+      const cloth = clothRef.current
+      const beerImg = beerImgRef.current
+      if (!cloth || !beerImg) return
+      const { h } = sizeRef.current
+      const size = Math.min(
+        Math.max(Math.min(cloth.imgW, cloth.imgH) * 0.55, 80),
+        170,
+      )
+      const tx = cloth.originX + cloth.imgW * 0.5
+      const ty = cloth.originY + cloth.imgH * 0.4
+      const sx = -size
+      const sy = ty - h * 0.12
+      const T = BEER_FLIGHT_TIME
+      const vx = (tx - sx) / T
+      const vy = (ty - sy) / T - 0.5 * BEER_GRAVITY * T
+      beersRef.current = [
+        ...beersRef.current,
+        {
+          x: sx,
+          y: sy,
+          vx,
+          vy,
+          angle: -0.5,
+          spin: 8 + Math.random() * 5,
+          size,
+          tx,
+          ty,
+          impacted: false,
+          fade: 1,
+        },
+      ]
+    },
+  }), [])
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -244,6 +429,15 @@ export function ClothCanvas({ imageSrc, onLoaded }: Props) {
     if (!ctx) return
 
     let cancelled = false
+    beersRef.current = []
+    particlesRef.current = []
+
+    const beerImg = new Image()
+    if (/^https?:/i.test(beerSrc)) beerImg.crossOrigin = 'anonymous'
+    beerImg.onload = () => {
+      if (!cancelled) beerImgRef.current = beerImg
+    }
+    beerImg.src = beerSrc
 
     function fitCanvas() {
       if (!canvas) return
@@ -298,6 +492,15 @@ export function ClothCanvas({ imageSrc, onLoaded }: Props) {
         step(cloth, dt, ts)
         const { dpr, w, h } = sizeRef.current
         render(ctx, image, cloth, dpr, w, h)
+
+        const beers = beersRef.current
+        const particles = particlesRef.current
+        stepProjectiles(beers, particles, cloth, dt)
+        beersRef.current = beers.filter(
+          (b) => b.fade > 0 && b.y < h + 260 && b.x < w + 260,
+        )
+        particlesRef.current = particles.filter((p) => p.life < p.maxLife)
+        drawProjectiles(ctx, beerImgRef.current, beersRef.current, particlesRef.current, dpr)
       }
       rafRef.current = requestAnimationFrame(loop)
     }
@@ -332,7 +535,7 @@ export function ClothCanvas({ imageSrc, onLoaded }: Props) {
       window.removeEventListener('orientationchange', handleResize)
       canvas.removeEventListener('pointerdown', onPointerDown)
     }
-  }, [imageSrc, onLoaded])
+  }, [imageSrc, beerSrc, onLoaded])
 
   return <canvas ref={canvasRef} className="app__canvas" />
-}
+})
