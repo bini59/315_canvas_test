@@ -1,10 +1,20 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { ClothCanvas, type ClothCanvasHandle } from './ClothCanvas'
+import {
+  ClothCanvas,
+  type ClothCanvasHandle,
+  BEER_FLIGHT_TIME,
+} from './ClothCanvas'
 import './App.css'
 
 const BASE = import.meta.env.BASE_URL
 const BEER_SRC = `${BASE}beer-6pack.png`
 const IMAGE_COUNT = 20
+
+// Just-frame timing window: a touch within ±this of impact counts as a hit.
+const HIT_WINDOW_MS = 42
+const IMPACT_DELAY_MS = BEER_FLIGHT_TIME * 1000
+// How long the center touch button stays armed after a throw.
+const ARMED_MS = IMPACT_DELAY_MS + 240
 const IMAGES = Array.from(
   { length: IMAGE_COUNT },
   (_, i) => `${BASE}image-cut/iseri-nina-${String(i + 1).padStart(2, '0')}.png`,
@@ -22,13 +32,18 @@ function App() {
     () => IMAGES[Math.floor(Math.random() * IMAGES.length)],
   )
   const [hinted, setHinted] = useState(false)
+  const [armed, setArmed] = useState(false)
+  const [niceKey, setNiceKey] = useState(0)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
   const objectUrlRef = useRef<string | null>(null)
   const canvasRef = useRef<ClothCanvasHandle | null>(null)
+  const impactsRef = useRef<number[]>([])
+  const armTimerRef = useRef<number | null>(null)
 
   useEffect(() => {
     return () => {
       if (objectUrlRef.current) URL.revokeObjectURL(objectUrlRef.current)
+      if (armTimerRef.current) clearTimeout(armTimerRef.current)
     }
   }, [])
 
@@ -53,6 +68,22 @@ function App() {
 
   const throwBeer = useCallback(() => {
     canvasRef.current?.throwBeer()
+    const now = performance.now()
+    impactsRef.current = [
+      ...impactsRef.current.filter((t) => now - t < 1500),
+      now + IMPACT_DELAY_MS,
+    ]
+    setArmed(true)
+    if (armTimerRef.current) clearTimeout(armTimerRef.current)
+    armTimerRef.current = window.setTimeout(() => setArmed(false), ARMED_MS)
+  }, [])
+
+  const onTimingTouch = useCallback(() => {
+    const now = performance.now()
+    const hit = impactsRef.current.some(
+      (im) => Math.abs(now - im) <= HIT_WINDOW_MS,
+    )
+    if (hit) setNiceKey((k) => k + 1)
   }, [])
 
   const handleFile = useCallback((ev: React.ChangeEvent<HTMLInputElement>) => {
@@ -81,6 +112,21 @@ function App() {
           맥주 투척
         </button>
       </div>
+      {armed && (
+        <button
+          type="button"
+          className="app__touch"
+          onPointerDown={onTimingTouch}
+          aria-label="타이밍 터치"
+        >
+          터치
+        </button>
+      )}
+      {niceKey > 0 && (
+        <div key={niceKey} className="app__nice" aria-live="polite">
+          ナイスビール
+        </div>
+      )}
       <div className="app__controls">
         <button type="button" className="app__btn" onClick={openPicker}>
           Upload

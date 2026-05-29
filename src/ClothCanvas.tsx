@@ -38,7 +38,8 @@ const IMPULSE_STRENGTH = 14
 
 // Thrown-beer projectile + impact tuning
 const BEER_GRAVITY = 1950
-const BEER_FLIGHT_TIME = 0.5
+// Horizontal speed is constant, so impact lands exactly this long after a throw.
+export const BEER_FLIGHT_TIME = 0.5
 const HIT_RADIUS_RATIO = 0.42
 const HIT_STRENGTH = 28
 const SPLASH_COUNT = 18

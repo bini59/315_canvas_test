@@ -74,3 +74,77 @@
 .app__file {
   display: none;
 }
+
+.app__touch {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  appearance: none;
+  border: 2px solid rgba(255, 255, 255, 0.55);
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  cursor: pointer;
+  backdrop-filter: blur(3px);
+  touch-action: manipulation;
+  animation: touchPulse 0.85s ease-in-out infinite;
+}
+
+.app__touch:active {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+@keyframes touchPulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 0 16px rgba(255, 255, 255, 0);
+  }
+}
+
+.app__nice {
+  position: absolute;
+  left: 50%;
+  top: 46%;
+  transform: translate(-50%, -50%);
+  font-size: clamp(40px, 12vw, 96px);
+  font-weight: 800;
+  color: #ffd23f;
+  text-shadow:
+    0 3px 0 #d62828,
+    0 0 26px rgba(255, 210, 63, 0.65);
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  pointer-events: none;
+  animation: nicePop 1.3s ease forwards;
+}
+
+@keyframes nicePop {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.4) rotate(-6deg);
+  }
+  15% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.18) rotate(-3deg);
+  }
+  30% {
+    transform: translate(-50%, -50%) scale(1) rotate(-3deg);
+  }
+  80% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1) rotate(-3deg);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -58%) scale(1.05) rotate(-3deg);
+  }
+}
