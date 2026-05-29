@@ -1,121 +1,54 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
+import { useCallback, useMemo, useState } from 'react'
+import { ClothCanvas } from './ClothCanvas'
 import './App.css'
 
+const BASE = import.meta.env.BASE_URL
+const IMAGES = [
+  `${BASE}image/iseri-nina-01.jpg`,
+  `${BASE}image/iseri-nina-02.jpg`,
+  `${BASE}image/iseri-nina-03.png`,
+]
+
+function pickRandom(excludeIndex: number): number {
+  if (IMAGES.length <= 1) return 0
+  let i = Math.floor(Math.random() * IMAGES.length)
+  if (i === excludeIndex) i = (i + 1) % IMAGES.length
+  return i
+}
+
 function App() {
-  const [count, setCount] = useState(0)
+  const [index, setIndex] = useState<number>(() =>
+    Math.floor(Math.random() * IMAGES.length),
+  )
+  const [hinted, setHinted] = useState(false)
+  const imageSrc = useMemo(() => IMAGES[index], [index])
+
+  const handleLoaded = useCallback(() => {
+    setHinted(false)
+  }, [])
+
+  const shuffle = useCallback(() => {
+    setIndex((cur) => pickRandom(cur))
+    setHinted(false)
+  }, [])
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.tsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
-
-      <div className="ticks"></div>
-
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
-
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
+    <div className="app">
+      <ClothCanvas
+        key={imageSrc}
+        imageSrc={imageSrc}
+        onLoaded={handleLoaded}
+      />
+      <button type="button" className="app__shuffle" onClick={shuffle}>
+        Shuffle
+      </button>
+      <div
+        className={'app__hint' + (hinted ? ' app__hint--hidden' : '')}
+        onAnimationEnd={() => setHinted(true)}
+      >
+        이미지를 터치해보세요
+      </div>
+    </div>
   )
 }
 
