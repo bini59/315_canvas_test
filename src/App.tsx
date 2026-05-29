@@ -76,14 +76,11 @@ function App() {
         beerSrc={BEER_SRC}
         onLoaded={handleLoaded}
       />
-      <button
-        type="button"
-        className="app__throw"
-        onClick={throwBeer}
-        aria-label="맥주 던지기"
-      >
-        🍺 맥주 투척
-      </button>
+      <div className="app__controls app__controls--left">
+        <button type="button" className="app__btn" onClick={throwBeer}>
+          맥주 투척
+        </button>
+      </div>
       <div className="app__controls">
         <button type="button" className="app__btn" onClick={openPicker}>
           Upload

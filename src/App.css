@@ -39,6 +39,11 @@
   gap: 8px;
 }
 
+.app__controls--left {
+  right: auto;
+  left: max(16px, env(safe-area-inset-left));
+}
+
 .app__btn {
   appearance: none;
   border: 1px solid rgba(255, 255, 255, 0.12);
@@ -68,44 +73,4 @@
 
 .app__file {
   display: none;
-}
-
-.app__throw {
-  position: absolute;
-  left: max(16px, env(safe-area-inset-left));
-  top: 50%;
-  transform: translateY(-50%);
-  appearance: none;
-  border: 1px solid rgba(255, 196, 0, 0.35);
-  background: linear-gradient(
-    180deg,
-    rgba(255, 196, 0, 0.18),
-    rgba(214, 40, 40, 0.18)
-  );
-  color: #fff;
-  font-size: 14px;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  padding: 12px 18px;
-  border-radius: 12px;
-  cursor: pointer;
-  backdrop-filter: blur(4px);
-  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.3);
-  transition:
-    transform 0.12s ease,
-    background 0.2s ease,
-    border-color 0.2s ease;
-}
-
-.app__throw:hover {
-  border-color: rgba(255, 196, 0, 0.6);
-  background: linear-gradient(
-    180deg,
-    rgba(255, 196, 0, 0.28),
-    rgba(214, 40, 40, 0.28)
-  );
-}
-
-.app__throw:active {
-  transform: translateY(-50%) scale(0.94);
 }
