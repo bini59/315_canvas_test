@@ -31,10 +31,15 @@
   opacity: 0;
 }
 
-.app__shuffle {
+.app__controls {
   position: absolute;
   right: max(16px, env(safe-area-inset-right));
   top: max(16px, env(safe-area-inset-top));
+  display: flex;
+  gap: 8px;
+}
+
+.app__btn {
   appearance: none;
   border: 1px solid rgba(255, 255, 255, 0.12);
   background: rgba(255, 255, 255, 0.04);
@@ -51,12 +56,16 @@
     color 0.2s ease;
 }
 
-.app__shuffle:hover {
+.app__btn:hover {
   background: rgba(255, 255, 255, 0.08);
   border-color: rgba(255, 255, 255, 0.2);
   color: #fff;
 }
 
-.app__shuffle:active {
+.app__btn:active {
   background: rgba(255, 255, 255, 0.12);
+}
+
+.app__file {
+  display: none;
 }

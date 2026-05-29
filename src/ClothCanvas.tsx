@@ -272,7 +272,7 @@ export function ClothCanvas({ imageSrc, onLoaded }: Props) {
     fitCanvas()
 
     const img = new Image()
-    img.crossOrigin = 'anonymous'
+    if (/^https?:/i.test(imageSrc)) img.crossOrigin = 'anonymous'
     img.onload = () => {
       if (cancelled) return
       imgRef.current = img
