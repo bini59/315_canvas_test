@@ -3,29 +3,11 @@ import { ClothCanvas } from './ClothCanvas'
 import './App.css'
 
 const BASE = import.meta.env.BASE_URL
-const IMAGE_FILES = [
-  'iseri-nina-01.jpg',
-  'iseri-nina-02.jpg',
-  'iseri-nina-03.png',
-  'iseri-nina-04.jpg',
-  'iseri-nina-05.png',
-  'iseri-nina-06.jpg',
-  'iseri-nina-07.jpg',
-  'iseri-nina-08.jpg',
-  'iseri-nina-09.jpg',
-  'iseri-nina-10.jpg',
-  'iseri-nina-11.png',
-  'iseri-nina-12.jpg',
-  'iseri-nina-13.jpg',
-  'iseri-nina-14.jpg',
-  'iseri-nina-15.jpg',
-  'iseri-nina-16.jpg',
-  'iseri-nina-17.jpg',
-  'iseri-nina-18.jpg',
-  'iseri-nina-19.jpg',
-  'iseri-nina-20.jpg',
-]
-const IMAGES = IMAGE_FILES.map((f) => `${BASE}image/${f}`)
+const IMAGE_COUNT = 20
+const IMAGES = Array.from(
+  { length: IMAGE_COUNT },
+  (_, i) => `${BASE}image-cut/iseri-nina-${String(i + 1).padStart(2, '0')}.png`,
+)
 
 function pickRandom(excludeIndex: number): number {
   if (IMAGES.length <= 1) return 0
